@@ -12,7 +12,7 @@ public class Type {
     private String username;
     private Long chatId;
     private Long date;
-    private String[] words = {"faggot", "root", "name", "delta", "bittle"};
+    private String[] words = {"car", "loser", "creative", "delta", "bittle"};
 
     public Type(Update update) {
         this.username = update.getMessage().getFrom().getUserName();
@@ -20,18 +20,28 @@ public class Type {
         this.chatId = update.getMessage().getChatId();
     }
 
-    public void start(){
-        if(message.equals("/type")){
-            int random = new Random().nextInt(words.length);
-            String word = words[random];
-            Helper.send(chatId, "Type: " + word);
-            write(word);
+    public void start() {
+        if (message.equals("/type")) {
+            if (!read().equals(":")) {
+                Helper.send(chatId, "Theres still a game in progress!");
+            } else {
+                int random = new Random().nextInt(words.length);
+                String word = words[random];
+                Helper.send(chatId, "Type: " + word);
+                write(word, String.valueOf(System.currentTimeMillis()));
+            }
         }
-
-        if (read().split(":")[0]!=null) {
+        if(message.equals("/reset") && (username.equals("hey_root") || username.equals("terrybawk"))){
+            Helper.send(chatId, "Type game reset!");
+            write("", "");
+        } else if(message.equals("/reset") && (!username.equals("hey_root") || !username.equals("terrybawk"))){
+            Helper.send(chatId, "Only admins can reset the game!");
+        }
+        if (read().split(":")[0] != null) {
             if (message.equals(read().split(":")[0])) {
                 Long reaction = System.currentTimeMillis() - Long.valueOf(read().split(":")[1]);
                 Helper.send(chatId, username + " won! " + reaction + "ms");
+                write("", "");
             }
         }
     }
@@ -58,16 +68,15 @@ public class Type {
         return line;
     }
 
-    public void write(String word) {
+    public void write(String word, String date) {
         try {
             FileWriter fileWriter =
                     new FileWriter(chatId + ".txt");
             BufferedWriter bufferedWriter =
                     new BufferedWriter(fileWriter);
-            bufferedWriter.write(word+":"+String.valueOf(System.currentTimeMillis()));
+            bufferedWriter.write(word + ":" + date);
             bufferedWriter.close();
-        }
-        catch(IOException ex) {
+        } catch (IOException ex) {
             System.out.println("Error writing to file");
         }
     }
