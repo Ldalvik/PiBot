@@ -43,12 +43,7 @@ public class Fish {
             Long allFish = currentFish + fishCaught;
                 setFish(username, allFish);
                 send("You caught: " + fishCaught + " fish! Total: " + allFish);
-            } else {
-            Long fishCaught = Long.valueOf(new Random().nextInt(15));
-                setFish(username, fishCaught);
-                send("You caught: " + fishCaught + " fish! Total: " + fishCaught);
-
-            }
+        }
     }
 
     public void check() {
