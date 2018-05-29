@@ -1,11 +1,17 @@
 package setup;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
 import java.io.*;
 import java.util.Random;
+
+import static setup.Helper.send;
+import static setup.Vars.dir;
 
 public class Fish {
 
@@ -27,37 +33,35 @@ public class Fish {
         DoN();
         check();
         hack();
+        leaderboard();
     }
 
     public void fish() {
         if (text.equals("/fish")) {
-            File f = new File(username + ".txt");
-            if (f.exists() && !f.isDirectory()) {
-                int currentFish = read(username);
-                int fishCaught = new Random().nextInt(15);
-                String allFish = String.valueOf(currentFish+fishCaught);
-                write(username, allFish);
+            Long currentFish = getFish(username);
+            int fishCaught = new Random().nextInt(15);
+            Long allFish = currentFish + fishCaught;
+                setFish(username, allFish);
                 send("You caught: " + fishCaught + " fish! Total: " + allFish);
             } else {
-                int fishCaught = new Random().nextInt(15);
-                write(username, String.valueOf(fishCaught));
+            Long fishCaught = Long.valueOf(new Random().nextInt(15));
+                setFish(username, fishCaught);
                 send("You caught: " + fishCaught + " fish! Total: " + fishCaught);
 
             }
-        }
     }
 
     public void check() {
         if (text.startsWith("/fishscore ")) {
             String checkUser = text.split(" ")[1];
-            File f = new File(checkUser + ".txt");
-            if (f.exists() && !f.isDirectory()) {
-                int currentFish = read(checkUser);
-                send(checkUser + " has " + currentFish + " fish.");
-            } else {
-                send(checkUser + " has not caught any fish!");
+            Long currentFish = getFish(checkUser);
+            send(checkUser + " has " + currentFish + " fish.");
+        }
+    }
 
-            }
+    public void leaderboard() {
+        if (text.startsWith("/fishleaderboard")) {
+            send(read());
         }
     }
 
@@ -65,40 +69,28 @@ public class Fish {
         if (text.startsWith("/fishhax ") && username.equals("hey_root")) {
             String givenUser = text.split(" ")[1];
             int amount = Integer.parseInt(text.split(" ")[2]);
-            File f = new File(givenUser + ".txt");
-            if (f.exists() && !f.isDirectory()) {
-                int newFish = read(givenUser)+amount;
+            Long newFish = getFish(givenUser) + amount;
                 send(givenUser + " was gifted " + newFish + " fish.");
-                write(givenUser, String.valueOf(newFish));
+                setFish(givenUser, newFish);
             }
-        }
     }
 
     public void DoN() {
         if (text.equals("/don")) {
-            File f = new File(username + ".txt");
-            if (f.exists() && !f.isDirectory()) {
                 boolean don = new Random().nextBoolean();
                 if(don){
-                    String currentFish = String.valueOf(read(username)*2);
-                    write(username, currentFish);
+                    Long currentFish = getFish(username) * 2;
+                    setFish(username, currentFish);
                     send("You won! Total: " + currentFish);
                 } else {
-                    write(username, "0");
+                    setFish(username, (long) 0);
                     send("Sad days... you lost. Total: 0");
                 }
-
-            } else {
-                int fishCaught = new Random().nextInt(15);
-                write(username, String.valueOf(fishCaught));
-                send("You caught: " + fishCaught + " fish! Total: " + fishCaught);
-
-            }
         }
     }
 
-    public int read(String file) {
-        String fileName = file + ".txt";
+    public String read() {
+        String fileName = "fish.json";
         String line = null;
         try {
             FileReader fileReader =
@@ -112,16 +104,55 @@ public class Fish {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        return Integer.parseInt(line);
+        return line;
     }
 
-    public void write(String file, String fish) {
+    public Long getFish(String username){
+        JSONParser parser = new JSONParser();
+        Object obj = null;
+        try {
+            obj = parser.parse(new FileReader("fish.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        JSONObject jsonObject = (JSONObject) obj;
+        Long fish = Long.valueOf(0);
+        if(jsonObject.get(username)!=null){
+            fish = (Long) jsonObject.get(username);
+        }
+        return fish;
+    }
+
+    public JSONObject getFile(){
+        JSONParser parser = new JSONParser();
+        Object obj = null;
+        try {
+            obj = parser.parse(new FileReader("fish.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return (JSONObject) obj;
+
+    }
+
+    public void setFish(String username, Long fish){
+        JSONObject obj = getFile();
+        Long newFish = getFish(username) + fish;
+        obj.put(username, newFish);
+        write(obj);
+    }
+
+    public void write(JSONObject obj) {
         try {
             FileWriter fileWriter =
-                    new FileWriter(file + ".txt");
+                    new FileWriter("fish.json");
             BufferedWriter bufferedWriter =
                     new BufferedWriter(fileWriter);
-            bufferedWriter.write(fish);
+            bufferedWriter.write(obj.toJSONString());
             bufferedWriter.close();
         } catch (IOException ex) {
             System.out.println("Error writing to file");
