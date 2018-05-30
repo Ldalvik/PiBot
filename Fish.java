@@ -1,8 +1,8 @@
 package setup;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
@@ -103,51 +103,52 @@ public class Fish {
     }
 
     public Long getFish(String username){
-        JSONParser parser = new JSONParser();
-        Object obj = null;
-        try {
-            obj = parser.parse(new FileReader("fish.json"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        JSONObject jsonObject = (JSONObject) obj;
+        JSONArray arr = getFile();
         Long fish = Long.valueOf(0);
-        if(jsonObject.get(username)!=null){
-            fish = (Long) jsonObject.get(username);
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject obj = arr.getJSONObject(i);
+            if(obj.getString("username").equals(username)){
+                fish = obj.getLong("fish");
+            }
         }
         return fish;
     }
 
-    public JSONObject getFile(){
-        JSONParser parser = new JSONParser();
-        Object obj = null;
-        try {
-            obj = parser.parse(new FileReader("fish.json"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return (JSONObject) obj;
+    public JSONArray getFile(){
+        JSONTokener parser = new JSONTokener(read());
+        return new JSONArray(parser);
 
     }
 
     public void setFish(String username, Long fish){
-        JSONObject obj = getFile();
-        Long newFish = getFish(username) + fish;
-        obj.put(username, newFish);
-        write(obj);
+        JSONArray arr = getFile();
+        boolean exists = false;
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject obj = arr.getJSONObject(i);
+            if(obj.getString("username").equals(username)){
+                exists = true;
+                Long newFish = getFish(username) + fish;
+                obj.put("fish", newFish);
+                arr.put(obj);
+            }
+        }
+        if(!exists){
+            JSONObject obj = new JSONObject();
+            obj.put("username", username);
+            obj.put("fish", fish);
+            arr.put(obj);
+            write(arr);
+        }
+        write(arr);
     }
 
-    public void write(JSONObject obj) {
+    public void write(JSONArray arr) {
         try {
             FileWriter fileWriter =
                     new FileWriter("fish.json");
             BufferedWriter bufferedWriter =
                     new BufferedWriter(fileWriter);
-            bufferedWriter.write(obj.toJSONString());
+            bufferedWriter.write(arr.toString());
             bufferedWriter.close();
         } catch (IOException ex) {
             System.out.println("Error writing to file");
